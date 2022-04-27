@@ -42,7 +42,7 @@ class Parser:
     def parse(self):
         expression = self.expression()
         if not self.throwable_handler.is_empty() and self.current_token.type != _lexer.TT_EOF:
-
+            self.throwable_handler.add(_throw.SyntaxError_())
         return self.expression()
 
     def advance(self):
@@ -52,12 +52,11 @@ class Parser:
 
     def factor(self):
         tok = self.current_token
+        self.advance()
 
         if tok.type in (_lexer.TT_INT, _lexer.TT_FLOAT):
-            self.advance()
             return NumNode(tok)
         else:
-            self.advance()
             self.throwable_handler.add(_throw.SyntaxError_(illegal_statement=f'{tok.value}',
                                                            detail=f"Expected int or float, got {tok.type} instead",
                                                            position=tok.pos_start))
@@ -74,8 +73,8 @@ class Parser:
 
         while self.current_token in op_tokens:
             op_token = self.current_token
-            right = method()
             self.advance()
+            right = method()
             left = BinOpNode(left=left, token=op_token, right=right)
 
         return left
