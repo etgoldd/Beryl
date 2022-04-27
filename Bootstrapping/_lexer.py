@@ -55,8 +55,8 @@ class Lexer:
         self.text = text
         self.pos = _position.Position(index=-1, line=0, column=-1, file_name=file_name, file_text=text)
         self.current_char = None
-        self.throwable = None
-        # TODO fix throwable handler
+        self.throwableHandler = _throw.ThrowableHandler()
+
         self.line_len = len(text)
         self.advance()
 
@@ -78,14 +78,16 @@ class Lexer:
                 token = self.make_number_token()
                 tokens.append(token)
 
-                if self.throwable is not None:
-                    return [], self.throwable
+                if not self.throwableHandler.is_empty():
+                    return []
             else:
-                return [], _throw.IllegalCharException(self.current_char, self.pos.copy())
+                self.throwableHandler.add(_throw.IllegalCharException(char=self.current_char,
+                                                                      position=self.pos.copy()))
+                return []
 
             self.advance()
-        tokens.append(Token(TT_EOF, self.pos.copy()))
-        return tokens, None
+        tokens.append(Token(TT_EOF, pos_start=self.pos.copy()))
+        return tokens
 
     def make_number_token(self):
         num_str = ''
@@ -106,8 +108,8 @@ class Lexer:
         elif dot_count == 1:
             return Token(TT_FLOAT, value=float(num_str), pos_start=start_pos.copy())
         else:
-            self.throwable = _throw.SyntaxError_(illegal_statement=num_str,
-                                                 detail="\t Unexpected dot",
-                                                 position=self.pos.copy())
+            self.throwableHandler.add(_throw.SyntaxError_(illegal_statement=num_str,
+                                                          detail="\t Unexpected dot",
+                                                          position=self.pos.copy()))
             return
 

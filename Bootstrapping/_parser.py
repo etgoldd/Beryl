@@ -41,9 +41,11 @@ class Parser:
 
     def parse(self):
         expression = self.expression()
-        if not self.throwable_handler.is_empty() and self.current_token.type != _lexer.TT_EOF:
-            self.throwable_handler.add(_throw.SyntaxError_())
-        return self.expression()
+        if self.throwable_handler.is_empty() and self.current_token.type != _lexer.TT_EOF:
+            self.throwable_handler.add(_throw.SyntaxError_(illegal_statement=f'',
+                                                           detail=f'Expected an operator, got {expression.token.type} instead',
+                                                           position=expression.token.pos_start.copy()))
+        return expression
 
     def advance(self):
         self.token_index += 1
@@ -51,16 +53,16 @@ class Parser:
             self.current_token = self.tokens[self.token_index]
 
     def factor(self):
-        tok = self.current_token
+        token = self.current_token
         self.advance()
 
-        if tok.type in (_lexer.TT_INT, _lexer.TT_FLOAT):
-            return NumNode(tok)
+        if token.type in (_lexer.TT_INT, _lexer.TT_FLOAT):
+            return NumNode(token)
         else:
-            self.throwable_handler.add(_throw.SyntaxError_(illegal_statement=f'{tok.value}',
-                                                           detail=f"Expected int or float, got {tok.type} instead",
-                                                           position=tok.pos_start))
-            return NumNode(tok)
+            self.throwable_handler.add(_throw.SyntaxError_(illegal_statement=f'',
+                                                           detail=f"Expected int or float, got {token.type} instead",
+                                                           position=token.pos_start))
+            return NumNode(token)
 
     def term(self):
         return self.bin_op((_lexer.TT_MUL, _lexer.TT_DIV), self.factor)
@@ -71,11 +73,10 @@ class Parser:
     def bin_op(self, op_tokens, method):
         left = method()
 
-        while self.current_token in op_tokens:
+        while self.current_token.type in op_tokens:
             op_token = self.current_token
             self.advance()
             right = method()
             left = BinOpNode(left=left, token=op_token, right=right)
 
         return left
-

@@ -3,7 +3,7 @@ import _position
 
 class Throwable:
 
-    def __init__(self, throwable_name: str, details: str, position):
+    def __init__(self, position,  throwable_name: str, details: str = ""):
         self.pos: _position.Position = position
         self.throwable_name = throwable_name
         self.details = details
@@ -20,12 +20,16 @@ class Throwable:
 
 class IllegalCharException(Throwable):
     def __init__(self, char, position):
-        super().__init__('IllegalCharException', f"Unrecognized character: '{char}'", position)
+        super().__init__(throwable_name='IllegalCharException',
+                         details=f"Unrecognized character: '{char}'",
+                         position=position)
 
 
 class SyntaxError_(Throwable):
-    def __init__(self, illegal_statement, detail, position):
-        super().__init__('SyntaxError', f"{detail}: {illegal_statement}", position)
+    def __init__(self, detail, position, illegal_statement=""):
+        super().__init__(throwable_name='SyntaxError',
+                         details=f"{detail}: {illegal_statement}",
+                         position=position)
 
 
 class ThrowableHandler:
@@ -36,7 +40,7 @@ class ThrowableHandler:
     def __repr__(self):
         str_rep = ''
         for throw in self.throws:
-            str_rep += f'throw.__repr__() \n'
+            str_rep += f'{throw.__repr__()} \n \n'
         return str_rep
 
     def add(self, throwable):
