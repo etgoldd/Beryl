@@ -27,6 +27,16 @@ class BinOpNode:  # Binary Operator Node
     def __repr__(self):
         return f'({self.left} {self.token} {self.right})'
 
+
+class UnaryOpNode:
+    def __init__(self, token, node: ValueNode):
+        self.token = token
+        self.node = node
+
+    def __repr__(self):
+        return f'({self.token}->{self.node})'
+
+
 # 1 + 2 * 3 + 4 + 5 * 6
 # expr(expr(expr(trm(fctr(1)) trm(fctr(2) fctr(3))) trm(fctr(4))) trm(fctr(5) fctr(6))))
 
@@ -52,16 +62,41 @@ class Parser:
         if self.token_index < len(self.tokens):
             self.current_token = self.tokens[self.token_index]
 
+    def recede(self):
+        self.token_index -= 1
+        if self.token_index > 0:
+            self.current_token = self.tokens[self.token_index]
+
     def factor(self):
         token = self.current_token
         self.advance()
 
-        if token.type in (_lexer.TT_INT, _lexer.TT_FLOAT):
+        # Skipping over excess plus signs
+        if token.type == _lexer.TT_PLUS:
+            while self.current_token.type == _lexer.TT_PLUS:
+                self.advance()
+            return self.factor()
+
+        if token.type == _lexer.TT_MINUS:
+            if self.current_token.type == _lexer.TT_MINUS:
+                self.advance()
+                return self.factor()  # skip two minuses
+            return UnaryOpNode(token=token, node=self.factor())
+        elif token.type == _lexer.TT_LPAREN:
+            expr = self.expression()
+            if self.current_token.type == _lexer.TT_RPAREN:
+                self.advance()
+                return expr
+            else:
+                self.throwable_handler.add(_throw.SyntaxError_(illegal_statement=f'',
+                                                               detail="Expected ')'",
+                                                               position=token.pos_start.copy()))
+        elif token.type in (_lexer.TT_INT, _lexer.TT_FLOAT):
             return NumNode(token)
         else:
             self.throwable_handler.add(_throw.SyntaxError_(illegal_statement=f'',
                                                            detail=f"Expected int or float, got {token.type} instead",
-                                                           position=token.pos_start))
+                                                           position=token.pos_start.copy()))
             return NumNode(token)
 
     def term(self):
